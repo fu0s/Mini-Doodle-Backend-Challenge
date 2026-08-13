@@ -1,4 +1,5 @@
 FROM eclipse-temurin:21-jre-alpine
+RUN apk add --no-cache curl
 WORKDIR /app
 COPY consumer-service/target/consumer-service-*.jar app.jar
 EXPOSE 8081

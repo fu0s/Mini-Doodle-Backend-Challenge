@@ -1,34 +1,35 @@
 package com.minidoodle.shared.config;
 
-import com.minidoodle.shared.constants.KafkaTopics;
-import com.minidoodle.shared.constants.MeetingEventType;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 /**
  * Kafka configuration shared by both services.
  * <p>
- * Bound from the {@code scheduling.kafka.*} keys so that the topic name and
- * event type — which producer (scheduler-service) and consumer (consumer-service)
- * must agree on — resolve from this single shared class. A property change
- * therefore propagates to both services automatically.
+ * Bound from the {@code scheduling.kafka.*} keys in {@code application.properties}.
+ * The topic name and event type — which producer (scheduler-service) and
+ * consumer (consumer-service) must agree on — resolve from this single shared
+ * class, so a property change propagates to both services automatically.
+ * No defaults live here; the values come exclusively from the properties file.
  */
 @ConfigurationProperties(prefix = "scheduling.kafka")
+@Component
 public class SharedKafkaProperties {
 
     /**
      * Kafka bootstrap servers.
      */
-    private String bootstrapServers = "localhost:9092";
+    private String bootstrapServers;
 
     /**
      * Topic for meeting creation events.
      */
-    private String topicName = KafkaTopics.MEETING_CREATED;
+    private String topicName;
 
     /**
      * Type of meeting-created events, used as the Kafka message key.
      */
-    private String eventType = MeetingEventType.CREATED.name();
+    private String eventType;
 
     public String getBootstrapServers() {
         return bootstrapServers;

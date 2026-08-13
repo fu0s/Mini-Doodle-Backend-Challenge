@@ -1,28 +1,32 @@
 package com.minidoodle.scheduler.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 /**
  * Scheduler-service-specific configuration.
  * <p>
- * Bound from the {@code scheduling.scheduler.*} keys. Holds only what is
- * genuinely specific to the scheduler service — cross-cutting Kafka values
- * (bootstrap servers, topic name, event type) live exclusively in the shared
+ * Bound from the {@code scheduling.scheduler.*} keys in
+ * {@code application.properties}. Holds only what is genuinely specific to the
+ * scheduler service — cross-cutting Kafka values (bootstrap servers, topic name,
+ * event type) live exclusively in the shared
  * {@link com.minidoodle.shared.config.SharedKafkaProperties} so producer and
- * consumer cannot drift apart.
+ * consumer cannot drift apart. No defaults live here; the values come
+ * exclusively from the properties file.
  */
 @ConfigurationProperties(prefix = "scheduling.scheduler")
+@Component
 public class SchedulerProperties {
 
     /**
      * GraphQL HTTP endpoint path served by this service.
      */
-    private String graphqlPath = "/graphql";
+    private String graphqlPath;
 
     /**
      * Kafka producer tuning for meeting events.
      */
-    private Producer producer = new Producer();
+    private Producer producer;
 
     public String getGraphqlPath() {
         return graphqlPath;
@@ -48,17 +52,17 @@ public class SchedulerProperties {
         /**
          * Required acknowledgements for meeting events.
          */
-        private String acks = "all";
+        private String acks;
 
         /**
          * Number of retries for a failed send.
          */
-        private int retries = 3;
+        private int retries;
 
         /**
          * Accumulator linger (ms) before a batch is sent.
          */
-        private long lingerMs = 5;
+        private long lingerMs;
 
         public String getAcks() {
             return acks;

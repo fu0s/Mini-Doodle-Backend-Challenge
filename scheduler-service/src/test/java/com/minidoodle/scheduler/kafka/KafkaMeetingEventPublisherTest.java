@@ -23,7 +23,11 @@ class KafkaMeetingEventPublisherTest {
     @BeforeEach
     void setUp() {
         kafkaTemplate = mock(KafkaTemplate.class);
-        publisher = new KafkaMeetingEventPublisher(kafkaTemplate, new SharedKafkaProperties());
+        SharedKafkaProperties properties = new SharedKafkaProperties();
+        properties.setBootstrapServers("localhost:9092");
+        properties.setTopicName(KafkaTopics.MEETING_CREATED);
+        properties.setEventType(MeetingEventType.CREATED.name());
+        publisher = new KafkaMeetingEventPublisher(kafkaTemplate, properties);
     }
 
     @Test

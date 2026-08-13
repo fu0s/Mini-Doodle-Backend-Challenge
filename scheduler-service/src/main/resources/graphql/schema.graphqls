@@ -18,12 +18,15 @@ type Query {
 }
 
 type Mutation {
-    createSlot(input: CreateSlotInput!): Slot!
-    updateSlot(input: UpdateSlotInput!): Slot!
+    # Mutations that create or update entities are nullable: a domain error
+    # (e.g. SLOT_CONFLICT) resolves the field to null with an error instead of
+    # bubbling an opaque NullValueInNonNullableField on top of the real error.
+    createSlot(input: CreateSlotInput!): Slot
+    updateSlot(input: UpdateSlotInput!): Slot
     deleteSlot(slotId: ID!): Boolean!
 
-    createMeeting(input: CreateMeetingInput!): Meeting!
-    updateMeeting(input: UpdateMeetingInput!): Meeting!
+    createMeeting(input: CreateMeetingInput!): Meeting
+    updateMeeting(input: UpdateMeetingInput!): Meeting
     deleteMeeting(meetingId: ID!): Boolean!
 }
 

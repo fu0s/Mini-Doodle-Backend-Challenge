@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini-Doodle · Manual Test Surface</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+            --ok: #4ade80;
+            --err: #f87171;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            background: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+        }
+        h1 { font-size: 1.25rem; margin: 0 0 .25rem; }
+        p.sub { color: var(--muted); margin: 0 0 1.5rem; font-size: .85rem; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1200px; }
+        @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .panel h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 .75rem; }
+        label { display: block; font-size: .75rem; color: var(--muted); margin: .75rem 0 .25rem; }
+        textarea {
+            width: 100%;
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: .5rem;
+            font: inherit;
+            font-size: .8rem;
+            resize: vertical;
+            min-height: 180px;
+        }
+        textarea.vars { min-height: 60px; }
+        .samples { display: flex; flex-wrap: wrap; gap: .4rem; margin: .75rem 0; }
+        .samples button {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: .25rem .6rem;
+            font: inherit;
+            font-size: .7rem;
+            cursor: pointer;
+        }
+        .samples button:hover { border-color: var(--accent); color: var(--accent); }
+        button.run {
+            display: inline-block;
+            margin-top: .75rem;
+            background: var(--accent);
+            color: #082f49;
+            font-weight: 700;
+            border: none;
+            border-radius: 6px;
+            padding: .5rem 1.25rem;
+            font: inherit;
+            font-size: .8rem;
+            cursor: pointer;
+        }
+        button.run:hover { filter: brightness(1.1); }
+        pre {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: .75rem;
+            font: inherit;
+            font-size: .75rem;
+            overflow: auto;
+            max-height: 480px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 120px;
+            margin: 0;
+        }
+        .meta { font-size: .8rem; color: var(--muted); }
+        .meta b { color: var(--accent); font-weight: 600; }
+        .status-ok { color: var(--ok); }
+        .status-err { color: var(--err); }
+        .hint { font-size: .75rem; color: var(--muted); margin-top: .5rem; line-height: 1.5; }
+        code { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <h1>Mini-Doodle · Manual Test Surface</h1>
+    <p class="sub">Runs queries and mutations against the scheduler GraphQL endpoint via <code>fetch</code>.</p>
+
+    <div class="grid">
+        <div class="panel">
+            <h2>Operation</h2>
+            <div class="samples">
+                <button data-example="createSlot">createSlot</button>
+                <button data-example="updateSlot">updateSlot</button>
+                <button data-example="deleteSlot">deleteSlot</button>
+                <button data-example="createMeeting">createMeeting</button>
+                <button data-example="updateMeeting">updateMeeting</button>
+                <button data-example="deleteMeeting">deleteMeeting</button>
+                <button data-example="slotsByUsername">slotsByUsername</button>
+                <button data-example="meetingsByUsername">meetingsByUsername</button>
+                <button data-example="calendar">calendar</button>
+            </div>
+            <label for="op">GraphQL operation</label>
+            <textarea id="op" spellcheck="false"></textarea>
+            <label for="vars">Variables (JSON)</label>
+            <textarea id="vars" class="vars" spellcheck="false">{}</textarea>
+            <button class="run" id="run">Execute</button>
+            <p class="hint">
+                Endpoint: <code id="endpoint"></code> · DateTime values are ISO-8601 strings like
+                <code>2026-08-13T10:00:00</code>. For <code>createMeeting</code>, every participant must have a FREE slot
+                fully covering <code>[start, end)</code>, otherwise the mutation fails with a <code>SlotConflict</code> error.
+            </p>
+        </div>
+
+        <div class="panel">
+            <h2>Response <span class="meta" id="status"></span></h2>
+            <pre id="response">Waiting for an operation…</pre>
+        </div>
+    </div>
+
+    <script>
+        const EXAMPLES = {
+            createSlot: `mutation CreateSlot($input: CreateSlotInput!) {
+  createSlot(input: $input) {
+    id
+    username
+    start
+    end
+    status
+    meetingId
+  }
+}`,
+            updateSlot: `mutation UpdateSlot($input: UpdateSlotInput!) {
+  updateSlot(input: $input) {
+    id
+    username
+    start
+    end
+    status
+    meetingId
+  }
+}`,
+            deleteSlot: `mutation DeleteSlot($slotId: ID!) {
+  deleteSlot(slotId: $slotId)
+}`,
+            createMeeting: `mutation CreateMeeting($input: CreateMeetingInput!) {
+  createMeeting(input: $input) {
+    id
+    title
+    description
+    participants
+    start
+    end
+  }
+}`,
+            updateMeeting: `mutation UpdateMeeting($input: UpdateMeetingInput!) {
+  updateMeeting(input: $input) {
+    id
+    title
+    description
+    participants
+    start
+    end
+  }
+}`,
+            deleteMeeting: `mutation DeleteMeeting($meetingId: ID!) {
+  deleteMeeting(meetingId: $meetingId)
+}`,
+            slotsByUsername: `query Slots($username: String!) {
+  slotsByUsername(username: $username) {
+    id
+    username
+    start
+    end
+    status
+    meetingId
+  }
+}`,
+            meetingsByUsername: `query Meetings($username: String!) {
+  meetingsByUsername(username: $username) {
+    id
+    title
+    description
+    participants
+    start
+    end
+  }
+}`,
+            calendar: `query Calendar($username: String!) {
+  calendar(username: $username) {
+    username
+    slots {
+      id
+      start
+      end
+      status
+      meetingId
+    }
+    meetings {
+      id
+      title
+      participants
+      start
+      end
+    }
+  }
+}`
+        };
+
+        const op = document.getElementById('op');
+        const vars = document.getElementById('vars');
+        const response = document.getElementById('response');
+        const status = document.getElementById('status');
+        const endpoint = document.getElementById('endpoint');
+        endpoint.textContent = '/graphql';
+
+        const VAR_DEFAULTS = {
+            createSlot: { input: { username: 'alice', start: '2026-08-13T10:00:00', end: '2026-08-13T11:00:00', status: 'FREE' } },
+            updateSlot: { input: { slotId: '1', start: '2026-08-13T10:00:00', end: '2026-08-13T11:30:00' } },
+            deleteSlot: { slotId: '1' },
+            createMeeting: {
+                input: {
+                    title: 'Weekly Sync',
+                    description: 'Planning meeting',
+                    participants: ['alice', 'bob'],
+                    start: '2026-08-13T10:00:00',
+                    end: '2026-08-13T11:00:00'
+                }
+            },
+            updateMeeting: {
+                input: {
+                    meetingId: '1',
+                    title: 'Weekly Sync',
+                    description: 'Rescheduled',
+                    participants: ['alice', 'bob'],
+                    start: '2026-08-13T14:00:00',
+                    end: '2026-08-13T15:00:00'
+                }
+            },
+            deleteMeeting: { meetingId: '1' },
+            slotsByUsername: { username: 'alice' },
+            meetingsByUsername: { username: 'alice' },
+            calendar: { username: 'alice' }
+        };
+
+        document.querySelectorAll('.samples button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.example;
+                op.value = EXAMPLES[key];
+                vars.value = JSON.stringify(VAR_DEFAULTS[key], null, 2);
+            });
+        });
+
+        // Load the first example on page load for convenience.
+        document.querySelector('.samples button').click();
+
+        document.getElementById('run').addEventListener('click', async () => {
+            let variables;
+            try {
+                variables = JSON.parse(vars.value);
+            } catch {
+                status.textContent = 'Invalid variables JSON';
+                status.className = 'meta status-err';
+                return;
+            }
+            status.textContent = '…';
+            status.className = 'meta';
+            try {
+                const res = await fetch(endpoint.textContent, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: op.value, variables })
+                });
+                const body = await res.json();
+                status.textContent = res.ok ? '200 OK' : (`HTTP ${res.status}`);
+                status.className = 'meta ' + (res.ok ? 'status-ok' : 'status-err');
+                response.textContent = JSON.stringify(body, null, 2);
+            } catch (err) {
+                status.textContent = 'Network error';
+                status.className = 'meta status-err';
+                response.textContent = String(err);
+            }
+        });
+    </script>
+</body>
+</html>

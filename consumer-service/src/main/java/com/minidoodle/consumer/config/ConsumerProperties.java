@@ -1,44 +1,47 @@
 package com.minidoodle.consumer.config;
 
-import com.minidoodle.shared.constants.KafkaTopics;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 /**
  * Consumer-service-specific configuration.
  * <p>
- * Bound from the {@code scheduling.consumer.*} keys. Holds only what is
- * genuinely specific to the consumer service — cross-cutting Kafka values
- * (bootstrap servers, topic name, event type) live exclusively in the shared
+ * Bound from the {@code scheduling.consumer.*} keys in
+ * {@code application.properties}. Holds only what is genuinely specific to the
+ * consumer service — cross-cutting Kafka values (bootstrap servers, topic name,
+ * event type) live exclusively in the shared
  * {@link com.minidoodle.shared.config.SharedKafkaProperties} so producer and
- * consumer cannot drift apart.
+ * consumer cannot drift apart. No defaults live here; the values come
+ * exclusively from the properties file.
  */
 @ConfigurationProperties(prefix = "scheduling.consumer")
+@Component
 public class ConsumerProperties {
 
     /**
      * Explicit consumer group id for meeting-created events.
      */
-    private String groupId = "consumer-service-meeting-created";
+    private String groupId;
 
     /**
      * Number of consumer threads in the listener container.
      */
-    private int concurrency = 3;
+    private int concurrency;
 
     /**
      * Dead-letter topic for meeting-created events that failed processing.
      */
-    private String dltTopic = KafkaTopics.MEETING_CREATED_DLT;
+    private String dltTopic;
 
     /**
      * Where a consumer with no committed offset starts reading.
      */
-    private String autoOffsetReset = "earliest";
+    private String autoOffsetReset;
 
     /**
      * Back-off policy for failed event processing before dead-letter routing.
      */
-    private Retry retry = new Retry();
+    private Retry retry;
 
     public String getGroupId() {
         return groupId;
@@ -89,12 +92,12 @@ public class ConsumerProperties {
         /**
          * Interval (ms) between retry attempts.
          */
-        private long intervalMs = 0;
+        private long intervalMs;
 
         /**
          * Maximum number of retry attempts.
          */
-        private int maxAttempts = 0;
+        private int maxAttempts;
 
         public long getIntervalMs() {
             return intervalMs;

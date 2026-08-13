@@ -17,7 +17,8 @@ docker compose up
 
 Starts Postgres, Kafka (KRaft), `scheduler-service`, and `consumer-service`.
 
-- Scheduler GraphQL: http://localhost:8080/graphiql
+- Scheduler GraphQL: http://localhost:8080/graphql
+- Manual test surface: http://localhost:8080/
 - Postgres: `localhost:5432` (`doodle`/`doodle`)
 - Kafka (host): `localhost:9092`
 
