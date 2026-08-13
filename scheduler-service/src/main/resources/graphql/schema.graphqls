@@ -1,0 +1,88 @@
+# Mini-Doodle GraphQL schema.
+# Queries expose slots, meetings, and the aggregated calendar view;
+# mutations manage slots and meetings. Custom exceptions are mapped to
+# typed GraphQL errors by GraphQlExceptionResolver
+
+scalar DateTime
+
+type Query {
+    # All slots owned by the given user.
+    slotsByUsername(username: String!): [Slot!]!
+
+    # All meetings where the given user is a participant.
+    meetingsByUsername(username: String!): [Meeting!]!
+
+    # Aggregated calendar view (slots + meetings) for a user.
+    # `from` and `to` optionally narrow the window; omit both for the full view.
+    calendar(username: String!, from: DateTime, to: DateTime): Calendar!
+}
+
+type Mutation {
+    createSlot(input: CreateSlotInput!): Slot!
+    updateSlot(input: UpdateSlotInput!): Slot!
+    deleteSlot(slotId: ID!): Boolean!
+
+    createMeeting(input: CreateMeetingInput!): Meeting!
+    updateMeeting(input: UpdateMeetingInput!): Meeting!
+    deleteMeeting(meetingId: ID!): Boolean!
+}
+
+enum SlotStatus {
+    FREE
+    BUSY
+}
+
+type Slot {
+    id: ID!
+    username: String!
+    start: DateTime!
+    end: DateTime!
+    status: SlotStatus!
+    # Set when this BUSY slot was created by a meeting; null otherwise.
+    meetingId: ID
+}
+
+type Meeting {
+    id: ID!
+    title: String!
+    description: String
+    participants: [String!]!
+    start: DateTime!
+    end: DateTime!
+}
+
+type Calendar {
+    username: String!
+    slots: [Slot!]!
+    meetings: [Meeting!]!
+}
+
+input CreateSlotInput {
+    username: String!
+    start: DateTime!
+    end: DateTime!
+    status: SlotStatus = FREE
+}
+
+input UpdateSlotInput {
+    slotId: ID!
+    start: DateTime!
+    end: DateTime!
+}
+
+input CreateMeetingInput {
+    title: String!
+    description: String
+    participants: [String!]!
+    start: DateTime!
+    end: DateTime!
+}
+
+input UpdateMeetingInput {
+    meetingId: ID!
+    title: String!
+    description: String
+    participants: [String!]!
+    start: DateTime!
+    end: DateTime!
+}

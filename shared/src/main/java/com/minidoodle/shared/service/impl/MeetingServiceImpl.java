@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -120,6 +121,13 @@ public class MeetingServiceImpl implements MeetingService {
     @Transactional(readOnly = true)
     public List<Meeting> getMeetingsByUsername(String username) {
         List<MeetingEntity> entities = meetingRepository.findByParticipantUsername(username);
+        return meetingMapper.toDomainList(entities);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Meeting> getMeetingsByIds(Collection<Long> meetingIds) {
+        List<MeetingEntity> entities = meetingRepository.findAllById(meetingIds);
         return meetingMapper.toDomainList(entities);
     }
 

@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -24,6 +25,15 @@ public interface SlotRepository extends JpaRepository<SlotEntity, Long> {
      * @return list of slots
      */
     List<SlotEntity> findByUsername(String username);
+
+    /**
+     * Finds slots for a set of users.
+     * Used by the slotsByUsername DataLoader for batched resolution.
+     *
+     * @param usernames the usernames to query
+     * @return list of slots owned by any of the given users
+     */
+    List<SlotEntity> findByUsernameIn(Collection<String> usernames);
 
     /**
      * Finds slots for a user within a time range.

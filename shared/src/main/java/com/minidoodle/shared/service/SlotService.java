@@ -4,6 +4,7 @@ import com.minidoodle.shared.constants.SlotStatus;
 import com.minidoodle.shared.domain.Slot;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -53,6 +54,15 @@ public interface SlotService {
      * @return list of slots owned by the user
      */
     List<Slot> getSlotsByUsername(String username);
+
+    /**
+     * Retrieves slots for a set of users in a single batched query.
+     * Used by DataLoaders to prevent N+1 queries.
+     *
+     * @param usernames the usernames to query
+     * @return list of slots owned by any of the given users
+     */
+    List<Slot> getSlotsByUsernames(Collection<String> usernames);
     
     /**
      * Retrieves slots for a user within a time range.

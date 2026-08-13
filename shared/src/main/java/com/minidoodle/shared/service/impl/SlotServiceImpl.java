@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -82,6 +83,13 @@ public class SlotServiceImpl implements SlotService {
     @Transactional(readOnly = true)
     public List<Slot> getSlotsByUsername(String username) {
         List<SlotEntity> entities = slotRepository.findByUsername(username);
+        return slotMapper.toDomainList(entities);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Slot> getSlotsByUsernames(Collection<String> usernames) {
+        List<SlotEntity> entities = slotRepository.findByUsernameIn(usernames);
         return slotMapper.toDomainList(entities);
     }
 

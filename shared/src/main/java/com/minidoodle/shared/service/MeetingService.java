@@ -3,6 +3,7 @@ package com.minidoodle.shared.service;
 import com.minidoodle.shared.domain.Meeting;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -64,6 +65,15 @@ public interface MeetingService {
      * @return list of meetings involving the user
      */
     List<Meeting> getMeetingsByUsername(String username);
+
+    /**
+     * Retrieves multiple meetings by their IDs in a single batched query.
+     * Used by DataLoaders to prevent N+1 queries.
+     *
+     * @param meetingIds the meeting IDs to query
+     * @return list of meetings matching the given IDs
+     */
+    List<Meeting> getMeetingsByIds(Collection<Long> meetingIds);
     
     /**
      * Retrieves a meeting by its ID.
