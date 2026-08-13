@@ -1,6 +1,7 @@
 package com.minidoodle.shared.service.impl;
 
 import com.minidoodle.shared.domain.Meeting;
+import com.minidoodle.shared.event.MeetingCreatedEvent;
 import com.minidoodle.shared.exceptions.InvalidParticipantsException;
 import com.minidoodle.shared.exceptions.InvalidTimeRangeException;
 import com.minidoodle.shared.exceptions.MeetingNotFoundException;
@@ -10,8 +11,10 @@ import com.minidoodle.shared.persistence.entity.MeetingEntity;
 import com.minidoodle.shared.persistence.entity.SlotEntity;
 import com.minidoodle.shared.persistence.repository.MeetingRepository;
 import com.minidoodle.shared.persistence.repository.SlotRepository;
+import com.minidoodle.shared.service.MeetingEventPublisher;
 import com.minidoodle.shared.service.MeetingService;
 import com.minidoodle.shared.service.SlotSplitter;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,15 +34,18 @@ public class MeetingServiceImpl implements MeetingService {
     private final SlotRepository slotRepository;
     private final SlotSplitter slotSplitter;
     private final MeetingMapper meetingMapper;
+    private final ObjectProvider<MeetingEventPublisher> meetingEventPublisherProvider;
 
     public MeetingServiceImpl(MeetingRepository meetingRepository,
                               SlotRepository slotRepository,
                               SlotSplitter slotSplitter,
-                              MeetingMapper meetingMapper) {
+                              MeetingMapper meetingMapper,
+                              ObjectProvider<MeetingEventPublisher> meetingEventPublisherProvider) {
         this.meetingRepository = meetingRepository;
         this.slotRepository = slotRepository;
         this.slotSplitter = slotSplitter;
         this.meetingMapper = meetingMapper;
+        this.meetingEventPublisherProvider = meetingEventPublisherProvider;
     }
 
     @Override
@@ -61,8 +67,10 @@ public class MeetingServiceImpl implements MeetingService {
 
         MeetingEntity saved = meetingRepository.save(meetingEntity);
 
-        for (String participant : participants) {
-            slotSplitter.splitSlotsForBusyPeriod(participant, start, end, saved.getId());
+        MeetingEventPublisher publisher = meetingEventPublisherProvider.getIfAvailable();
+        if (publisher != null) {
+            publisher.publishMeetingCreated(
+                    new MeetingCreatedEvent(saved.getId(), participants, start, end));
         }
 
         return meetingMapper.toDomain(saved);

@@ -33,5 +33,10 @@ public enum ErrorCode {
     /**
      * Invalid participants list (empty, null, or malformed).
      */
-    INVALID_PARTICIPANTS
+    INVALID_PARTICIPANTS,
+    
+    /**
+     * Failed to process a meeting event (e.g. from the message bus).
+     */
+    MEETING_EVENT_PROCESSING
 }
