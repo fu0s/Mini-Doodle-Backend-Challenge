@@ -1,6 +1,5 @@
 package com.minidoodle.consumer.listener;
 
-import com.minidoodle.shared.constants.KafkaTopics;
 import com.minidoodle.shared.event.MeetingCreatedEvent;
 import org.junit.jupiter.api.Test;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -12,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Verifies the wiring of {@link MeetingCreatedEventConsumer}:
- * correct topic, consumer group, and container factory.
+ * shared-topic SpEL reference, consumer group, and container factory.
  */
 class MeetingCreatedEventConsumerTest {
 
@@ -23,7 +22,7 @@ class MeetingCreatedEventConsumerTest {
 
         assertTrue(annotation != null, "onMeetingCreated must have @KafkaListener");
         assertEquals(1, annotation.topics().length);
-        assertEquals(KafkaTopics.MEETING_CREATED, annotation.topics()[0]);
+        assertEquals("#{sharedKafkaProperties.topicName}", annotation.topics()[0]);
     }
 
     @Test
@@ -31,8 +30,8 @@ class MeetingCreatedEventConsumerTest {
         Method method = MeetingCreatedEventConsumer.class.getMethod("onMeetingCreated", MeetingCreatedEvent.class);
         KafkaListener annotation = method.getAnnotation(KafkaListener.class);
 
-        assertTrue(annotation.groupId().contains("consumer-service-meeting-created"),
-                "Consumer group must reference consumer-service-meeting-created");
+        assertEquals("#{consumerProperties.groupId}", annotation.groupId(),
+                "Consumer group must resolve from ConsumerProperties");
     }
 
     @Test

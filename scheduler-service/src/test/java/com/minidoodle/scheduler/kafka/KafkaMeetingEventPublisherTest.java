@@ -1,6 +1,8 @@
 package com.minidoodle.scheduler.kafka;
 
+import com.minidoodle.shared.config.SharedKafkaProperties;
 import com.minidoodle.shared.constants.KafkaTopics;
+import com.minidoodle.shared.constants.MeetingEventType;
 import com.minidoodle.shared.event.MeetingCreatedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +23,7 @@ class KafkaMeetingEventPublisherTest {
     @BeforeEach
     void setUp() {
         kafkaTemplate = mock(KafkaTemplate.class);
-        publisher = new KafkaMeetingEventPublisher(kafkaTemplate);
+        publisher = new KafkaMeetingEventPublisher(kafkaTemplate, new SharedKafkaProperties());
     }
 
     @Test
@@ -36,11 +38,13 @@ class KafkaMeetingEventPublisherTest {
         publisher.publishMeetingCreated(event);
 
         ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<MeetingCreatedEvent> eventCaptor = ArgumentCaptor.forClass(MeetingCreatedEvent.class);
 
-        verify(kafkaTemplate).send(topicCaptor.capture(), eventCaptor.capture());
+        verify(kafkaTemplate).send(topicCaptor.capture(), keyCaptor.capture(), eventCaptor.capture());
 
         assertEquals(KafkaTopics.MEETING_CREATED, topicCaptor.getValue());
+        assertEquals(MeetingEventType.CREATED.name(), keyCaptor.getValue());
         assertEquals(42L, eventCaptor.getValue().getMeetingId());
         assertEquals(List.of("alice", "bob"), eventCaptor.getValue().getParticipants());
         assertEquals(event.getStart(), eventCaptor.getValue().getStart());

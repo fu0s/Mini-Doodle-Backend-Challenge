@@ -1,7 +1,6 @@
 package com.minidoodle.consumer.listener;
 
 import com.minidoodle.consumer.handler.MeetingCreatedEventHandler;
-import com.minidoodle.shared.constants.KafkaTopics;
 import com.minidoodle.shared.event.MeetingCreatedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,10 +10,10 @@ import org.springframework.stereotype.Component;
 /**
  * Kafka consumer for {@link MeetingCreatedEvent}s.
  * <p>
- * Wires to the {@code meeting-created} topic with an explicit consumer group
- * ({@code consumer-service-meeting-created}) and a dedicated
+ * Wires to the topic and group resolved from shared/consumer configuration via
+ * SpEL bean references, using a dedicated
  * {@link org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory}
- * using {@code JsonDeserializer}.
+ * with {@code JsonDeserializer}.
  * <p>
  * Delegates slot splitting to {@link MeetingCreatedEventHandler} which runs
  * asynchronously on a dedicated thread pool.
@@ -36,8 +35,8 @@ public class MeetingCreatedEventConsumer {
      * @param event the deserialised meeting-created event
      */
     @KafkaListener(
-            topics = KafkaTopics.MEETING_CREATED,
-            groupId = "${spring.kafka.consumer.group-id:consumer-service-meeting-created}",
+            topics = "#{sharedKafkaProperties.topicName}",
+            groupId = "#{consumerProperties.groupId}",
             containerFactory = "meetingEventKafkaListenerContainerFactory"
     )
     public void onMeetingCreated(MeetingCreatedEvent event) {

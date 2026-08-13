@@ -1,7 +1,11 @@
 package com.minidoodle.consumer.config;
 
-import com.minidoodle.shared.constants.KafkaTopics;
+import com.minidoodle.shared.config.SharedKafkaProperties;
 import com.minidoodle.shared.event.MeetingCreatedEvent;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.context.annotation.Bean;
@@ -23,12 +27,23 @@ import java.util.function.BiFunction;
 
 /**
  * Explicit Kafka consumer configuration for the consumer-service.
- * Creates a {@link ConcurrentKafkaListenerContainerFactory} with
- * {@link JsonDeserializer} and a {@link DefaultErrorHandler} that
- * forwards failed events to the dead-letter topic.
+ * <p>
+ * Every externalised value resolves from the shared
+ * {@link SharedKafkaProperties} (bootstrap servers) or this service's
+ * {@link ConsumerProperties} (group id, concurrency, DLT topic, retry
+ * policy) — no {@code @Value} literals or raw placeholders in factories.
  */
 @Configuration
 public class KafkaConsumerConfig {
+
+    private final SharedKafkaProperties sharedKafkaProperties;
+    private final ConsumerProperties consumerProperties;
+
+    public KafkaConsumerConfig(SharedKafkaProperties sharedKafkaProperties,
+                               ConsumerProperties consumerProperties) {
+        this.sharedKafkaProperties = sharedKafkaProperties;
+        this.consumerProperties = consumerProperties;
+    }
 
     /**
      * Creates a {@link ConsumerFactory} with an explicit {@link JsonDeserializer}
@@ -38,9 +53,11 @@ public class KafkaConsumerConfig {
     public ConsumerFactory<String, MeetingCreatedEvent> meetingEventConsumerFactory() {
         return new DefaultKafkaConsumerFactory<>(
                 Map.of(
-                        "bootstrap.servers", "${spring.kafka.bootstrap-servers:localhost:9092}",
-                        "group.id", "${spring.kafka.consumer.group-id:consumer-service-meeting-created}",
-                        "auto.offset.reset", "earliest"
+                        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                        sharedKafkaProperties.getBootstrapServers(),
+                        ConsumerConfig.GROUP_ID_CONFIG, consumerProperties.getGroupId(),
+                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+                        consumerProperties.getAutoOffsetReset()
                 ),
                 new StringDeserializer(),
                 new JsonDeserializer<>(MeetingCreatedEvent.class, false)
@@ -53,7 +70,8 @@ public class KafkaConsumerConfig {
     @Bean
     public ProducerFactory<String, MeetingCreatedEvent> dltProducerFactory() {
         return new DefaultKafkaProducerFactory<>(
-                Map.of("bootstrap.servers", "${spring.kafka.bootstrap-servers:localhost:9092}"),
+                Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                        sharedKafkaProperties.getBootstrapServers()),
                 new StringSerializer(),
                 new JsonSerializer<>()
         );
@@ -69,20 +87,21 @@ public class KafkaConsumerConfig {
 
     /**
      * {@link DefaultErrorHandler} that forwards failed events to the
-     * {@code meeting-created.DLT} topic with no retry (fixed back-off of 0).
+     * configured dead-letter topic with the configured back-off policy.
      * Uses {@link DeadLetterPublishingRecoverer} to publish to the DLT.
      */
     @Bean
     public DefaultErrorHandler meetingEventErrorHandler() {
-        BiFunction<org.apache.kafka.clients.consumer.ConsumerRecord<?,?>, Exception,
-                org.apache.kafka.common.TopicPartition> destinationResolver =
-                (record, exception) -> new org.apache.kafka.common.TopicPartition(
-                        KafkaTopics.MEETING_CREATED_DLT, record.partition());
+        BiFunction<ConsumerRecord<?, ?>, Exception, TopicPartition> destinationResolver =
+                (record, exception) -> new TopicPartition(
+                        consumerProperties.getDltTopic(), record.partition());
 
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 dltKafkaTemplate(), destinationResolver);
 
-        return new DefaultErrorHandler(recoverer, new FixedBackOff(0L, 0L));
+        return new DefaultErrorHandler(recoverer, new FixedBackOff(
+                consumerProperties.getRetry().getIntervalMs(),
+                consumerProperties.getRetry().getMaxAttempts()));
     }
 
     /**
@@ -96,7 +115,7 @@ public class KafkaConsumerConfig {
         ConcurrentKafkaListenerContainerFactory<String, MeetingCreatedEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(meetingEventConsumerFactory());
-        factory.setConcurrency(3);
+        factory.setConcurrency(consumerProperties.getConcurrency());
         factory.setCommonErrorHandler(meetingEventErrorHandler());
         return factory;
     }
