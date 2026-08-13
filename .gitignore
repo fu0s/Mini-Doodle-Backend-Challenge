@@ -8,9 +8,13 @@ target/
 *.iml
 .vscode/
 *.swp
+.opencode/
 
 # OS
 .DS_Store
 
 # Environment / local secrets
 .env
+
+# Local only
+tasks.md
