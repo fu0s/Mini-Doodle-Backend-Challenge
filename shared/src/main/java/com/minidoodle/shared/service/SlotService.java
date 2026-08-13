@@ -1,5 +1,6 @@
 package com.minidoodle.shared.service;
 
+import com.minidoodle.shared.constants.SlotStatus;
 import com.minidoodle.shared.domain.Slot;
 
 import java.time.LocalDateTime;
@@ -17,10 +18,11 @@ public interface SlotService {
      * @param username the user who owns the slot
      * @param start start time of the slot
      * @param end end time of the slot
+     * @param status the availability status of the slot (FREE or BUSY)
      * @return the created slot
      * @throws com.minidoodle.shared.exceptions.InvalidTimeRangeException if end <= start
      */
-    Slot createSlot(String username, LocalDateTime start, LocalDateTime end);
+    Slot createSlot(String username, LocalDateTime start, LocalDateTime end, SlotStatus status);
     
     /**
      * Updates an existing slot.
